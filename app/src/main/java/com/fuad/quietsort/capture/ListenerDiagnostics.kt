@@ -18,7 +18,10 @@ data class ListenerSnapshot(
     val removedEvents: Long = 0,
     val rankingUpdates: Long = 0,
     val persistenceFailures: Long = 0,
-    val droppedFromQueue: Long = 0
+    val droppedFromQueue: Long = 0,
+    val savedEvents: Long = 0,
+    val lastSavedAtMs: Long? = null,
+    val lastObservedAtMs: Long? = null
 )
 
 object ListenerDiagnostics {
@@ -37,12 +40,17 @@ object ListenerDiagnostics {
 
     @Synchronized
     fun posted() {
-        mutable.value = mutable.value.copy(postedEvents = mutable.value.postedEvents + 1)
+        mutable.value = mutable.value.copy(postedEvents = mutable.value.postedEvents + 1, lastObservedAtMs = System.currentTimeMillis())
     }
 
     @Synchronized
     fun removed() {
-        mutable.value = mutable.value.copy(removedEvents = mutable.value.removedEvents + 1)
+        mutable.value = mutable.value.copy(removedEvents = mutable.value.removedEvents + 1, lastObservedAtMs = System.currentTimeMillis())
+    }
+
+    @Synchronized
+    fun saved(now: Long = System.currentTimeMillis()) {
+        mutable.value = mutable.value.copy(savedEvents = mutable.value.savedEvents + 1, lastSavedAtMs = now)
     }
 
     @Synchronized
