@@ -32,5 +32,6 @@ data class NotificationEntity(
     val isClearable: Boolean = true,
     val isGroupSummary: Boolean = false,
     val isFavorite: Boolean = false,
-    val isArchived: Boolean = false
+    val isArchived: Boolean = false,
+    val isRead: Boolean = false
 )
