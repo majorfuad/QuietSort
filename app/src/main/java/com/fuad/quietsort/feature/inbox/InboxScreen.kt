@@ -1,6 +1,8 @@
 package com.fuad.quietsort.feature.inbox
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -95,24 +97,24 @@ fun InboxScreen(history: NotificationHistoryRepository) {
                 }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
             FilterChip(onlyUnread, { onlyUnread = !onlyUnread }, label = { Text("Unread") })
             FilterChip(onlyFavorites, { onlyFavorites = !onlyFavorites }, label = { Text("Starred") })
             FilterChip(showArchived, { showArchived = !showArchived }, label = { Text("Archived") })
         }
-        Row {
+        Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
             FilterChip(groupDuplicates, { groupDuplicates = !groupDuplicates },
                 label = { Text("Group duplicates") })
             TextButton(onClick = { selected = visibleIds }) { Text("Select all") }
             TextButton(onClick = { selected = emptySet() }) { Text("Clear") }
         }
-        Row {
+        Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
             TextButton(onClick = { execute { history.setRead(it, true) } }) { Text("Read") }
             TextButton(onClick = { execute { history.setRead(it, false) } }) { Text("Unread") }
             TextButton(onClick = { execute { history.setFavorite(it, true) } }) { Text("Star") }
             TextButton(onClick = { execute { history.setFavorite(it, false) } }) { Text("Unstar") }
         }
-        Row {
+        Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
             TextButton(onClick = { execute { history.setArchived(it, true) } }) { Text("Archive") }
             TextButton(onClick = { execute { history.setArchived(it, false) } }) { Text("Restore") }
             TextButton(onClick = { confirmDelete = true }) { Text("Delete") }
