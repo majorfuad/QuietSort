@@ -19,20 +19,26 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.fuad.quietsort.feature.onboarding.NotificationAccess
 import com.fuad.quietsort.capture.ListenerDiagnostics
+import com.fuad.quietsort.data.local.EncryptedDatabaseVerifier
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject lateinit var verifier: EncryptedDatabaseVerifier
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { QuietSortHome() }
+        setContent { QuietSortHome(verifier) }
     }
 }
 
 @Composable
-private fun QuietSortHome() {
+private fun QuietSortHome(verifier: EncryptedDatabaseVerifier) {
     val context = LocalContext.current
     val owner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
+    var storageResult by remember { mutableStateOf("Not checked") }
     var accessGranted by remember { mutableStateOf(NotificationAccess.isGranted(context)) }
     val diagnostics by ListenerDiagnostics.state.collectAsState()
 
@@ -93,7 +99,18 @@ private fun QuietSortHome() {
                 Text("Events observed this session: posted ${diagnostics.postedEvents}, removed ${diagnostics.removedEvents}, ranking updates ${diagnostics.rankingUpdates}",
                     style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(12.dp))
-                Text("Notification history and capture are not active yet.",
+                Spacer(Modifier.height(12.dp))
+                OutlinedButton(onClick = {
+                    scope.launch {
+                        storageResult = "Checking encrypted storage..."
+                        storageResult = try { verifier.verify() }
+                        catch (error: Exception) { "Storage test failed: " + (error.message ?: "Unknown error") }
+                    }
+                }) { Text("Verify encrypted storage") }
+                Text(storageResult, style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center)
+                Spacer(Modifier.height(12.dp))
+                Text("Real notification history is not being stored yet.",
                     style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
             }
         }
