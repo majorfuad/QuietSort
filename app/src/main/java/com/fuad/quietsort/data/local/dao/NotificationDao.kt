@@ -6,6 +6,7 @@ import androidx.room.Query
 import androidx.room.Update
 import com.fuad.quietsort.data.local.entity.NotificationEntity
 import com.fuad.quietsort.data.local.entity.NotificationEventEntity
+import com.fuad.quietsort.data.local.entity.ClassificationRuleEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -48,4 +49,28 @@ interface NotificationDao {
 
     @Query("SELECT COUNT(*) FROM notification_events")
     fun observeEventCount(): Flow<Int>
+    @Query("SELECT * FROM notifications WHERE packageName != 'com.fuad.quietsort.selftest' ORDER BY postedAtMs DESC, id DESC LIMIT :limit")
+    fun observeInbox(limit: Int = 1000): Flow<List<NotificationEntity>>
+
+    @Query("SELECT * FROM classification_rules ORDER BY priority, id")
+    fun observeRules(): Flow<List<ClassificationRuleEntity>>
+
+    @Insert
+    suspend fun insertRule(rule: ClassificationRuleEntity): Long
+
+    @Query("DELETE FROM classification_rules WHERE id = :id")
+    suspend fun deleteRule(id: Long): Int
+
+    @Query("UPDATE notifications SET isRead = :value WHERE id IN (:ids)")
+    suspend fun setRead(ids: List<Long>, value: Boolean): Int
+
+    @Query("UPDATE notifications SET isArchived = :value WHERE id IN (:ids)")
+    suspend fun setArchived(ids: List<Long>, value: Boolean): Int
+
+    @Query("UPDATE notifications SET isFavorite = :value WHERE id IN (:ids)")
+    suspend fun setFavorite(ids: List<Long>, value: Boolean): Int
+
+    @Query("DELETE FROM notifications WHERE id IN (:ids)")
+    suspend fun deleteIds(ids: List<Long>): Int
+
 }
