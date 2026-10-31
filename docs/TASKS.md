@@ -6,8 +6,8 @@
 | T02 | Dependencies and CI | In PR; Gradle validation pending |
 | T03 | Notification access onboarding | Backlog |
 | T04 | Listener lifecycle | Backlog |
-| T05 | Normalization | Backlog |
-| T06 | Encrypted Room schema | Backlog |
+| T05 | Normalization | Merged |
+| T06 | Encrypted Room schema | In PR; device verification pending |
 | T07 | Idempotent event persistence | Backlog |
 | T08 | Listener health | Backlog |
 | T09 | Exclusions and retention | Backlog |
