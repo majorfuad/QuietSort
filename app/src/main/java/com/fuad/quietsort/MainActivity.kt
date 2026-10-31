@@ -18,6 +18,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.fuad.quietsort.feature.onboarding.NotificationAccess
+import com.fuad.quietsort.capture.ListenerDiagnostics
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -33,6 +34,7 @@ private fun QuietSortHome() {
     val context = LocalContext.current
     val owner = LocalLifecycleOwner.current
     var accessGranted by remember { mutableStateOf(NotificationAccess.isGranted(context)) }
+    val diagnostics by ListenerDiagnostics.state.collectAsState()
 
     DisposableEffect(owner, context) {
         val observer = LifecycleEventObserver { _, event ->
@@ -82,6 +84,15 @@ private fun QuietSortHome() {
                     accessGranted = NotificationAccess.isGranted(context)
                 }) { Text("Refresh access status") }
                 Spacer(Modifier.height(24.dp))
+                Text("Listener: " + when {
+                    !accessGranted -> "Access disabled"
+                    diagnostics.connected -> "Connected"
+                    else -> "Not connected"
+                }, style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(8.dp))
+                Text("Events observed this session: posted ${diagnostics.postedEvents}, removed ${diagnostics.removedEvents}, ranking updates ${diagnostics.rankingUpdates}",
+                    style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
+                Spacer(Modifier.height(12.dp))
                 Text("Notification history and capture are not active yet.",
                     style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
             }
