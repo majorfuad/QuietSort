@@ -1,16 +1,24 @@
 package com.fuad.quietsort
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.os.Bundle
-import dagger.hilt.android.AndroidEntryPoint
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.fuad.quietsort.feature.onboarding.NotificationAccess
+import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -22,8 +30,22 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun QuietSortHome() {
+    val context = LocalContext.current
+    val owner = LocalLifecycleOwner.current
+    var accessGranted by remember { mutableStateOf(NotificationAccess.isGranted(context)) }
+
+    DisposableEffect(owner, context) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                accessGranted = NotificationAccess.isGranted(context)
+            }
+        }
+        owner.lifecycle.addObserver(observer)
+        onDispose { owner.lifecycle.removeObserver(observer) }
+    }
+
     MaterialTheme {
-        Surface(modifier = Modifier.fillMaxSize()) {
+        Surface(Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier.fillMaxSize().padding(24.dp),
                 verticalArrangement = Arrangement.Center,
@@ -31,11 +53,37 @@ private fun QuietSortHome() {
             ) {
                 Text("QuietSort", style = MaterialTheme.typography.headlineLarge)
                 Spacer(Modifier.height(12.dp))
-                Text("Offline Notification Organizer", textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.titleMedium)
+                Text("Your notifications. Your device. No cloud.",
+                    textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(24.dp))
-                Text("Privacy-first notification intelligence. Capture is not enabled yet.",
-                    textAlign = TextAlign.Center)
+                Text(if (accessGranted) "Notification access granted"
+                     else "Notification access not granted",
+                    style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Android notification access lets QuietSort read notifications from other apps. " +
+                    "This can include personal messages, one-time codes and financial alerts. " +
+                    "QuietSort works offline. No notification content is saved during this setup phase.",
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(20.dp))
+                Button(onClick = {
+                    val settingsIntent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                    try {
+                        context.startActivity(settingsIntent)
+                    } catch (_: ActivityNotFoundException) {
+                        context.startActivity(Intent(Settings.ACTION_SETTINGS))
+                    }
+                }) {
+                    Text(if (accessGranted) "Manage notification access" else "Grant notification access")
+                }
+                Spacer(Modifier.height(12.dp))
+                OutlinedButton(onClick = {
+                    accessGranted = NotificationAccess.isGranted(context)
+                }) { Text("Refresh access status") }
+                Spacer(Modifier.height(24.dp))
+                Text("Notification history and capture are not active yet.",
+                    style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
             }
         }
     }
