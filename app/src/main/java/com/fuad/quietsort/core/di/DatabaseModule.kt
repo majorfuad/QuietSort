@@ -29,7 +29,7 @@ object DatabaseModule {
         val factory = SupportOpenHelperFactory(secret)
         return Room.databaseBuilder(context, QuietSortDatabase::class.java, DB_NAME)
             .openHelperFactory(factory)
-            .addMigrations(DatabaseMigrations.MIGRATION_1_2)
+            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3)
             .build()
     }
 
