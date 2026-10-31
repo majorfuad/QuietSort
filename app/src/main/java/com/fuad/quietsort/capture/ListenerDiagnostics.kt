@@ -16,7 +16,9 @@ data class ListenerSnapshot(
     val lastDisconnectedAtMs: Long? = null,
     val postedEvents: Long = 0,
     val removedEvents: Long = 0,
-    val rankingUpdates: Long = 0
+    val rankingUpdates: Long = 0,
+    val persistenceFailures: Long = 0,
+    val droppedFromQueue: Long = 0
 )
 
 object ListenerDiagnostics {
@@ -41,6 +43,16 @@ object ListenerDiagnostics {
     @Synchronized
     fun removed() {
         mutable.value = mutable.value.copy(removedEvents = mutable.value.removedEvents + 1)
+    }
+
+    @Synchronized
+    fun persistenceFailed() {
+        mutable.value = mutable.value.copy(persistenceFailures = mutable.value.persistenceFailures + 1)
+    }
+
+    @Synchronized
+    fun queueDropped() {
+        mutable.value = mutable.value.copy(droppedFromQueue = mutable.value.droppedFromQueue + 1)
     }
 
     @Synchronized
