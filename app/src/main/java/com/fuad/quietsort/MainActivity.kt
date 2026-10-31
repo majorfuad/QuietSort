@@ -28,6 +28,7 @@ import com.fuad.quietsort.data.local.EncryptedDatabaseVerifier
 import com.fuad.quietsort.data.preferences.PrivacyPreferences
 import com.fuad.quietsort.data.repository.NotificationHistoryRepository
 import com.fuad.quietsort.feature.privacy.PrivacyControls
+import com.fuad.quietsort.feature.inbox.InboxScreen
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import dagger.hilt.android.AndroidEntryPoint
@@ -49,6 +50,17 @@ private fun QuietSortHome(
     preferences: PrivacyPreferences,
     history: NotificationHistoryRepository
 ) {
+    var screen by remember { mutableStateOf("Inbox") }
+    if (screen == "Inbox") {
+        Column(Modifier.fillMaxSize()) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                Button(onClick = { screen = "Inbox" }) { Text("Inbox") }
+                OutlinedButton(onClick = { screen = "Settings" }) { Text("Settings") }
+            }
+            InboxScreen(history)
+        }
+        return
+    }
     val context = LocalContext.current
     val owner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
@@ -80,6 +92,10 @@ private fun QuietSortHome(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Row {
+                    Button(onClick = { screen = "Inbox" }) { Text("Inbox") }
+                    OutlinedButton(onClick = { screen = "Settings" }) { Text("Settings") }
+                }
                 Text("QuietSort", style = MaterialTheme.typography.headlineLarge)
                 Spacer(Modifier.height(12.dp))
                 Text("Your notifications. Your device. No cloud.",
