@@ -45,6 +45,7 @@ class QuietNotificationListener : NotificationListenerService() {
                         is NotificationCaptureAction.Removed ->
                             history.removed(event.key, event.timestampMs, event.reason)
                     }
+                    ListenerDiagnostics.saved()
                 } catch (_: Exception) {
                     ListenerDiagnostics.persistenceFailed()
                 }
