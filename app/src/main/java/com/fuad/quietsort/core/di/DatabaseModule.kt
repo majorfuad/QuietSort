@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.fuad.quietsort.core.security.DatabaseKeyManager
 import com.fuad.quietsort.data.local.QuietSortDatabase
+import com.fuad.quietsort.data.local.migration.DatabaseMigrations
 import com.fuad.quietsort.data.local.dao.NotificationDao
 import dagger.Module
 import dagger.Provides
@@ -28,6 +29,7 @@ object DatabaseModule {
         val factory = SupportOpenHelperFactory(secret)
         return Room.databaseBuilder(context, QuietSortDatabase::class.java, DB_NAME)
             .openHelperFactory(factory)
+            .addMigrations(DatabaseMigrations.MIGRATION_1_2)
             .build()
     }
 
