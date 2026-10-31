@@ -3,6 +3,8 @@ package com.fuad.quietsort.data.repository
 import androidx.room.withTransaction
 import com.fuad.quietsort.capture.NormalizedNotification
 import com.fuad.quietsort.data.local.QuietSortDatabase
+import com.fuad.quietsort.data.preferences.PrivacyPreferences
+import kotlinx.coroutines.flow.first
 import com.fuad.quietsort.data.local.entity.NotificationEntity
 import com.fuad.quietsort.data.local.entity.NotificationEventEntity
 import kotlinx.coroutines.sync.Mutex
@@ -16,15 +18,18 @@ import javax.inject.Singleton
  */
 @Singleton
 class NotificationHistoryRepository @Inject constructor(
-    private val database: QuietSortDatabase
+    private val database: QuietSortDatabase,
+    private val privacy: PrivacyPreferences
 ) {
     private val mutex = Mutex()
     private val dao get() = database.notificationDao()
 
     val capturedCount get() = dao.observeCapturedCount()
     val eventCount get() = dao.observeEventCount()
+    val sourcePackages get() = dao.observeSourcePackages()
 
     suspend fun posted(value: NormalizedNotification, eventTimeMs: Long) = mutex.withLock {
+        if (!privacy.isCaptureEnabled.first() || value.packageName in privacy.excludedApps.first()) return@withLock
         database.withTransaction {
             val active = dao.findActive(value.systemKey)
             if (active == null) {
@@ -73,8 +78,10 @@ class NotificationHistoryRepository @Inject constructor(
     }
 
     suspend fun removed(systemKey: String, eventTimeMs: Long, reason: Int? = null) = mutex.withLock {
+        if (!privacy.isCaptureEnabled.first()) return@withLock
         database.withTransaction {
             val active = dao.findActive(systemKey) ?: return@withTransaction
+            if (active.packageName in privacy.excludedApps.first()) return@withTransaction
             dao.update(active.copy(removedAtMs = eventTimeMs))
             dao.insertEvent(
                 NotificationEventEntity(
@@ -86,4 +93,31 @@ class NotificationHistoryRepository @Inject constructor(
             )
         }
     }
+    /** Exclusion and erasure share the same mutex as capture operations. */
+    suspend fun setAppExcluded(packageName: String, excluded: Boolean): Int = mutex.withLock {
+        privacy.setExcludedPackage(packageName, excluded)
+        if (excluded) database.withTransaction { dao.deletePackage(packageName) } else 0
+    }
+
+    suspend fun setRetentionDays(days: Int): Int = mutex.withLock {
+        privacy.setRetentionDays(days)
+        pruneLocked(System.currentTimeMillis())
+    }
+
+    suspend fun pruneExpired(nowMs: Long = System.currentTimeMillis()): Int = mutex.withLock {
+        pruneLocked(nowMs)
+    }
+
+    private suspend fun pruneLocked(nowMs: Long): Int {
+        val days = privacy.retentionPeriodDays.first()
+        val cutoff = nowMs - days * 86_400_000L
+        return database.withTransaction { dao.deleteOlderThan(cutoff) }
+    }
+
+    /** Stops capture and deletes all rows (including synthetic T06 records). */
+    suspend fun eraseAllHistory(): Int = mutex.withLock {
+        privacy.setCaptureEnabled(false)
+        database.withTransaction { dao.deleteAll() }
+    }
+
 }
