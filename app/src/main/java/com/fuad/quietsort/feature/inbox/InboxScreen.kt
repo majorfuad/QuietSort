@@ -53,7 +53,7 @@ fun InboxScreen(history: NotificationHistoryRepository) {
         fromMs = from,
         groupDuplicates = groupDuplicates
     )
-    val visibleIds = results.map { it.notification.id }.toSet()
+    val visibleIds = results.flatMap { it.memberIds }.toSet()
 
     fun execute(action: suspend (Set<Long>) -> Int) {
         val ids = selected.ifEmpty { visibleIds }
@@ -129,13 +129,13 @@ fun InboxScreen(history: NotificationHistoryRepository) {
                 ElevatedCard(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                         .clickable {
-                            selected = if (n.id in selected) selected - n.id else selected + n.id
+                            selected = if (item.memberIds.all { it in selected }) selected - item.memberIds else selected + item.memberIds
                         }
                 ) {
                     Column(Modifier.padding(12.dp)) {
                         Row {
                             Checkbox(n.id in selected, onCheckedChange = { checked ->
-                                selected = if (checked) selected + n.id else selected - n.id
+                                selected = if (checked) selected + item.memberIds else selected - item.memberIds
                             })
                             Column {
                                 Text(n.packageName, style = MaterialTheme.typography.labelMedium)
