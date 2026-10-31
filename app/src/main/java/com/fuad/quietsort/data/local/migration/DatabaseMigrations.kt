@@ -20,4 +20,20 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS index_notification_events_occurredAtMs ON notification_events(occurredAtMs)")
         }
     }
+    val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE notifications ADD COLUMN isRead INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("""CREATE TABLE IF NOT EXISTS classification_rules (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                name TEXT NOT NULL,
+                matchType TEXT NOT NULL,
+                pattern TEXT NOT NULL,
+                targetCategory TEXT NOT NULL,
+                priority INTEGER NOT NULL,
+                enabled INTEGER NOT NULL
+            )""".trimIndent())
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_classification_rules_priority ON classification_rules(priority)")
+        }
+    }
 }
+
