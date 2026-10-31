@@ -38,7 +38,8 @@ dependencies {
     kapt(libs.hilt.compiler)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-    // Room compiler intentionally deferred to T06: no plaintext DB is instantiated.
+    kapt(libs.androidx.room.compiler)
+    implementation(libs.sqlcipher.android)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
