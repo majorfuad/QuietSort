@@ -26,5 +26,5 @@ jobs:
             echo 'INTERNET permission must not be requested' >&2
             exit 1
           fi
-      - name: Build
-        run: gradle :app:assembleDebug --no-daemon
+      - name: Build and unit tests
+        run: gradle :app:assembleDebug :app:testDebugUnitTest --no-daemon
