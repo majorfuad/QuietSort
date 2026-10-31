@@ -7,6 +7,8 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,6 +22,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.fuad.quietsort.feature.onboarding.NotificationAccess
 import com.fuad.quietsort.capture.ListenerDiagnostics
 import com.fuad.quietsort.data.local.EncryptedDatabaseVerifier
+import com.fuad.quietsort.data.preferences.PrivacyPreferences
+import com.fuad.quietsort.data.repository.NotificationHistoryRepository
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import dagger.hilt.android.AndroidEntryPoint
@@ -27,20 +31,29 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @Inject lateinit var verifier: EncryptedDatabaseVerifier
+    @Inject lateinit var preferences: PrivacyPreferences
+    @Inject lateinit var history: NotificationHistoryRepository
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { QuietSortHome(verifier) }
+        setContent { QuietSortHome(verifier, preferences, history) }
     }
 }
 
 @Composable
-private fun QuietSortHome(verifier: EncryptedDatabaseVerifier) {
+private fun QuietSortHome(
+    verifier: EncryptedDatabaseVerifier,
+    preferences: PrivacyPreferences,
+    history: NotificationHistoryRepository
+) {
     val context = LocalContext.current
     val owner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     var storageResult by remember { mutableStateOf("Not checked") }
     var accessGranted by remember { mutableStateOf(NotificationAccess.isGranted(context)) }
     val diagnostics by ListenerDiagnostics.state.collectAsState()
+    val captureEnabled by preferences.isCaptureEnabled.collectAsState(initial = false)
+    val savedCount by history.capturedCount.collectAsState(initial = 0)
+    val savedEvents by history.eventCount.collectAsState(initial = 0)
 
     DisposableEffect(owner, context) {
         val observer = LifecycleEventObserver { _, event ->
@@ -55,7 +68,7 @@ private fun QuietSortHome(verifier: EncryptedDatabaseVerifier) {
     MaterialTheme {
         Surface(Modifier.fillMaxSize()) {
             Column(
-                modifier = Modifier.fillMaxSize().padding(24.dp),
+                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -71,7 +84,7 @@ private fun QuietSortHome(verifier: EncryptedDatabaseVerifier) {
                 Text(
                     "Android notification access lets QuietSort read notifications from other apps. " +
                     "This can include personal messages, one-time codes and financial alerts. " +
-                    "QuietSort works offline. No notification content is saved during this setup phase.",
+                    "QuietSort works offline. Saving is optional, and records are encrypted on this device.",
                     textAlign = TextAlign.Center
                 )
                 Spacer(Modifier.height(20.dp))
@@ -99,6 +112,21 @@ private fun QuietSortHome(verifier: EncryptedDatabaseVerifier) {
                 Text("Events observed this session: posted ${diagnostics.postedEvents}, removed ${diagnostics.removedEvents}, ranking updates ${diagnostics.rankingUpdates}",
                     style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(12.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Save notifications locally", modifier = Modifier.weight(1f))
+                    Switch(
+                        checked = captureEnabled,
+                        enabled = accessGranted,
+                        onCheckedChange = { enabled -> scope.launch { preferences.setCaptureEnabled(enabled) } }
+                    )
+                }
+                Text("Local capture is optional. Stored records are encrypted on this device.",
+                    style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(8.dp))
+                Text("Saved notifications: $savedCount  •  history events: $savedEvents",
+                    style = MaterialTheme.typography.bodySmall)
+                Text("Storage errors: ${diagnostics.persistenceFailures}, queue drops: ${diagnostics.droppedFromQueue}",
+                    style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.height(12.dp))
                 OutlinedButton(onClick = {
                     scope.launch {
@@ -110,7 +138,7 @@ private fun QuietSortHome(verifier: EncryptedDatabaseVerifier) {
                 Text(storageResult, style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center)
                 Spacer(Modifier.height(12.dp))
-                Text("Real notification history is not being stored yet.",
+                Text("Only notifications received while local capture is enabled can be saved.",
                     style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
             }
         }
