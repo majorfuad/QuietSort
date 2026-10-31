@@ -21,7 +21,11 @@ class QuietNotificationListener : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         // Deliberately do not inspect, log, queue or persist sbn.
-        if (sbn != null) ListenerDiagnostics.posted()
+        if (sbn != null) {
+            // Normalize synchronously; discard immediately until encrypted storage exists.
+            // Never log or retain notification contents in T05.
+            AndroidNotificationAdapter.normalize(sbn)?.let { ListenerDiagnostics.posted() }
+        }
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
