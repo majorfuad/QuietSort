@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import com.fuad.quietsort.capture.NormalizedNotification
 import com.fuad.quietsort.data.local.QuietSortDatabase
 import com.fuad.quietsort.data.preferences.PrivacyPreferences
+import com.fuad.quietsort.data.retention.PrivacyPolicy
 import kotlinx.coroutines.flow.first
 import com.fuad.quietsort.data.local.entity.NotificationEntity
 import com.fuad.quietsort.data.local.entity.NotificationEventEntity
@@ -29,7 +30,14 @@ class NotificationHistoryRepository @Inject constructor(
     val sourcePackages get() = dao.observeSourcePackages()
 
     suspend fun posted(value: NormalizedNotification, eventTimeMs: Long) = mutex.withLock {
-        if (!privacy.isCaptureEnabled.first() || value.packageName in privacy.excludedApps.first()) return@withLock
+        if (!PrivacyPolicy.shouldCapture(
+                enabled = privacy.isCaptureEnabled.first(),
+                packageName = value.packageName,
+                excludedPackages = privacy.excludedApps.first(),
+                postedAtMs = value.postedAtMs,
+                nowMs = eventTimeMs,
+                retentionDays = privacy.retentionPeriodDays.first()
+            )) return@withLock
         database.withTransaction {
             val active = dao.findActive(value.systemKey)
             if (active == null) {
@@ -110,7 +118,7 @@ class NotificationHistoryRepository @Inject constructor(
 
     private suspend fun pruneLocked(nowMs: Long): Int {
         val days = privacy.retentionPeriodDays.first()
-        val cutoff = nowMs - days * 86_400_000L
+        val cutoff = PrivacyPolicy.cutoff(nowMs, days)
         return database.withTransaction { dao.deleteOlderThan(cutoff) }
     }
 
