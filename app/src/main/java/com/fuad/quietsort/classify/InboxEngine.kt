@@ -7,7 +7,8 @@ import java.util.Locale
 data class InboxItem(
     val notification: NotificationEntity,
     val category: String,
-    val duplicateCount: Int
+    val duplicateCount: Int,
+    val memberIds: Set<Long>
 )
 
 object InboxEngine {
@@ -41,7 +42,8 @@ object InboxEngine {
                         record.bigText ?: record.text,
                         record.category, rules
                     ),
-                    1
+                    1,
+                    setOf(record.id)
                 )
             }
             .filter { category == null || it.category == category }
@@ -61,7 +63,10 @@ object InboxEngine {
             groups.getOrPut(key) { mutableListOf() }.add(item)
         }
         return groups.values.map { members ->
-            members.first().copy(duplicateCount = members.size)
+            members.first().copy(
+                duplicateCount = members.size,
+                memberIds = members.map { it.notification.id }.toSet()
+            )
         }
     }
 }
