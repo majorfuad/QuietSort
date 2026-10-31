@@ -27,6 +27,7 @@ import java.util.Date
 import com.fuad.quietsort.data.local.EncryptedDatabaseVerifier
 import com.fuad.quietsort.data.preferences.PrivacyPreferences
 import com.fuad.quietsort.data.repository.NotificationHistoryRepository
+import com.fuad.quietsort.feature.privacy.PrivacyControls
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import dagger.hilt.android.AndroidEntryPoint
@@ -165,6 +166,8 @@ private fun QuietSortHome(
                 Spacer(Modifier.height(12.dp))
                 Text("Only notifications received while local capture is enabled can be saved.",
                     style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
+                Spacer(Modifier.height(24.dp))
+                PrivacyControls(preferences, history)
             }
         }
     }
