@@ -26,7 +26,11 @@ class EncryptedDatabaseVerifier @Inject constructor(
         val count = database.notificationDao().count()
         val file = context.getDatabasePath("quietsort.db")
         check(file.isFile) { "Database file not created" }
-        val header = file.inputStream().use { it.readNBytes(16) }
+        val header = file.inputStream().use { stream ->
+            ByteArray(16).also { bytes ->
+                check(stream.read(bytes) == bytes.size) { "Database header unavailable" }
+            }
+        }
         check(!header.contentEquals("SQLite format 3\u0000".toByteArray(Charsets.US_ASCII))) {
             "Plain SQLite header detected"
         }
