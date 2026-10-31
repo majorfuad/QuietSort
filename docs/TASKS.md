@@ -2,8 +2,8 @@
 
 | Task | Title | State |
 |---|---|---|
-| T01 | Android project bootstrap | In PR; build/device validation pending |
-| T02 | Dependencies and CI | Backlog |
+| T01 | Android project bootstrap | Merged; device installation not verified |
+| T02 | Dependencies and CI | In PR; Gradle validation pending |
 | T03 | Notification access onboarding | Backlog |
 | T04 | Listener lifecycle | Backlog |
 | T05 | Normalization | Backlog |
