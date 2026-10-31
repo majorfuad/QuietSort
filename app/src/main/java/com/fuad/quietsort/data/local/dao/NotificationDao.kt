@@ -22,6 +22,9 @@ interface NotificationDao {
     @Query("SELECT * FROM notifications WHERE systemKey = :key AND removedAtMs IS NULL ORDER BY id DESC LIMIT 1")
     suspend fun findActive(key: String): NotificationEntity?
 
+    @Query("SELECT MAX(lifecycleStartMs) FROM notifications WHERE systemKey = :key")
+    suspend fun latestLifecycleStart(key: String): Long?
+
     @Query("SELECT * FROM notifications ORDER BY postedAtMs DESC LIMIT :limit")
     fun observeRecent(limit: Int = 50): Flow<List<NotificationEntity>>
 
