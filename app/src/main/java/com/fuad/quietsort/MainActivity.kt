@@ -21,9 +21,13 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.fuad.quietsort.feature.onboarding.NotificationAccess
 import com.fuad.quietsort.capture.ListenerDiagnostics
+import com.fuad.quietsort.capture.CaptureHealthEvaluator
+import java.text.DateFormat
+import java.util.Date
 import com.fuad.quietsort.data.local.EncryptedDatabaseVerifier
 import com.fuad.quietsort.data.preferences.PrivacyPreferences
 import com.fuad.quietsort.data.repository.NotificationHistoryRepository
+import com.fuad.quietsort.feature.privacy.PrivacyControls
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import dagger.hilt.android.AndroidEntryPoint
@@ -54,6 +58,10 @@ private fun QuietSortHome(
     val captureEnabled by preferences.isCaptureEnabled.collectAsState(initial = false)
     val savedCount by history.capturedCount.collectAsState(initial = 0)
     val savedEvents by history.eventCount.collectAsState(initial = 0)
+    val health = CaptureHealthEvaluator.evaluate(accessGranted, captureEnabled, diagnostics)
+    fun formatted(timestamp: Long?): String = timestamp?.let {
+        DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM).format(Date(it))
+    } ?: "Not recorded this session"
 
     DisposableEffect(owner, context) {
         val observer = LifecycleEventObserver { _, event ->
@@ -103,6 +111,10 @@ private fun QuietSortHome(
                     accessGranted = NotificationAccess.isGranted(context)
                 }) { Text("Refresh access status") }
                 Spacer(Modifier.height(24.dp))
+                Text("Capture health: ${health.headline}", style = MaterialTheme.typography.titleMedium)
+                Text(health.detail, style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center)
+                Spacer(Modifier.height(8.dp))
                 Text("Listener: " + when {
                     !accessGranted -> "Access disabled"
                     diagnostics.connected -> "Connected"
@@ -127,6 +139,20 @@ private fun QuietSortHome(
                     style = MaterialTheme.typography.bodySmall)
                 Text("Storage errors: ${diagnostics.persistenceFailures}, queue drops: ${diagnostics.droppedFromQueue}",
                     style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(8.dp))
+                Text("Connected at: ${formatted(diagnostics.lastConnectedAtMs)}",
+                    style = MaterialTheme.typography.bodySmall)
+                Text("Disconnected at: ${formatted(diagnostics.lastDisconnectedAtMs)}",
+                    style = MaterialTheme.typography.bodySmall)
+                Text("Last notification event: ${formatted(diagnostics.lastObservedAtMs)}",
+                    style = MaterialTheme.typography.bodySmall)
+                Text("Last saved event: ${formatted(diagnostics.lastSavedAtMs)}",
+                    style = MaterialTheme.typography.bodySmall)
+                Text("Successful processing operations this session: ${diagnostics.savedEvents}",
+                    style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(8.dp))
+                Text("Troubleshooting: check Notification access in Settings; verify local capture is ON; trigger a test notification from another app. Android may delay or suppress some callbacks.",
+                    style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(12.dp))
                 OutlinedButton(onClick = {
                     scope.launch {
@@ -140,6 +166,8 @@ private fun QuietSortHome(
                 Spacer(Modifier.height(12.dp))
                 Text("Only notifications received while local capture is enabled can be saved.",
                     style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
+                Spacer(Modifier.height(24.dp))
+                PrivacyControls(preferences, history)
             }
         }
     }

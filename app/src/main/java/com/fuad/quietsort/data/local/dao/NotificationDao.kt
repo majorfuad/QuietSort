@@ -34,6 +34,18 @@ interface NotificationDao {
     @Query("SELECT COUNT(*) FROM notifications WHERE packageName != 'com.fuad.quietsort.selftest'")
     fun observeCapturedCount(): Flow<Int>
 
+    @Query("SELECT DISTINCT packageName FROM notifications WHERE packageName != 'com.fuad.quietsort.selftest' ORDER BY packageName")
+    fun observeSourcePackages(): Flow<List<String>>
+
+    @Query("DELETE FROM notifications WHERE packageName = :packageName")
+    suspend fun deletePackage(packageName: String): Int
+
+    @Query("DELETE FROM notifications WHERE postedAtMs < :cutoffMs")
+    suspend fun deleteOlderThan(cutoffMs: Long): Int
+
+    @Query("DELETE FROM notifications")
+    suspend fun deleteAll(): Int
+
     @Query("SELECT COUNT(*) FROM notification_events")
     fun observeEventCount(): Flow<Int>
 }
