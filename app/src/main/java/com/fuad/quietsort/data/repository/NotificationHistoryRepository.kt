@@ -8,6 +8,7 @@ import com.fuad.quietsort.data.retention.PrivacyPolicy
 import kotlinx.coroutines.flow.first
 import com.fuad.quietsort.data.local.entity.NotificationEntity
 import com.fuad.quietsort.data.local.entity.NotificationEventEntity
+import com.fuad.quietsort.data.local.entity.ClassificationRuleEntity
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
@@ -28,6 +29,8 @@ class NotificationHistoryRepository @Inject constructor(
     val capturedCount get() = dao.observeCapturedCount()
     val eventCount get() = dao.observeEventCount()
     val sourcePackages get() = dao.observeSourcePackages()
+    val inbox get() = dao.observeInbox()
+    val rules get() = dao.observeRules()
 
     suspend fun posted(value: NormalizedNotification, eventTimeMs: Long) = mutex.withLock {
         if (!PrivacyPolicy.shouldCapture(
@@ -126,6 +129,38 @@ class NotificationHistoryRepository @Inject constructor(
     suspend fun eraseAllHistory(): Int = mutex.withLock {
         privacy.setCaptureEnabled(false)
         database.withTransaction { dao.deleteAll() }
+    }
+
+    suspend fun addRule(name: String, matchType: String, pattern: String, category: String): Long =
+        mutex.withLock {
+            require(name.isNotBlank() && name.length <= 80)
+            require(matchType in setOf("APP", "TITLE", "KEYWORD"))
+            require(pattern.isNotBlank() && pattern.length <= 150)
+            require(category in com.fuad.quietsort.classify.SmartClassifier.categories)
+            dao.insertRule(
+                ClassificationRuleEntity(
+                    name = name.trim(), matchType = matchType,
+                    pattern = pattern.trim(), targetCategory = category
+                )
+            )
+        }
+
+    suspend fun deleteRule(id: Long) = mutex.withLock { dao.deleteRule(id) }
+
+    suspend fun setRead(ids: Set<Long>, read: Boolean): Int = mutex.withLock {
+        if (ids.isEmpty()) 0 else dao.setRead(ids.toList(), read)
+    }
+
+    suspend fun setArchived(ids: Set<Long>, archived: Boolean): Int = mutex.withLock {
+        if (ids.isEmpty()) 0 else dao.setArchived(ids.toList(), archived)
+    }
+
+    suspend fun setFavorite(ids: Set<Long>, favorite: Boolean): Int = mutex.withLock {
+        if (ids.isEmpty()) 0 else dao.setFavorite(ids.toList(), favorite)
+    }
+
+    suspend fun deleteNotifications(ids: Set<Long>): Int = mutex.withLock {
+        if (ids.isEmpty()) 0 else database.withTransaction { dao.deleteIds(ids.toList()) }
     }
 
 }
